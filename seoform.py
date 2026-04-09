@@ -193,8 +193,21 @@ st.markdown("""
 
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-# 🔧 NASTAVENÍ – vyplň před nasazením
-WEBHOOK_URL = "https://hook.eu2.make.com/TVŮJ_WEBHOOK_URL"   # ← URL webhooku Agent_0 V2
+# Hodnoty se čtou ze Streamlit secrets (.streamlit/secrets.toml)
+# Každý zákazník má vlastní deployment s vlastními secrets – kód se nemění.
+#
+# Příklad .streamlit/secrets.toml:
+#   WEBHOOK_URL = "https://hook.eu2.make.com/TVŮJ_WEBHOOK_URL"
+#   CLIENT_ID   = "seyfor"
+#
+try:
+    WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
+    CLIENT_ID   = st.secrets["CLIENT_ID"]
+except (KeyError, FileNotFoundError):
+    # Fallback pro lokální vývoj bez secrets.toml
+    WEBHOOK_URL = "https://hook.eu2.make.com/TVŮJ_WEBHOOK_URL"
+    CLIENT_ID   = "dev_client"
+    st.warning("⚠️  Secrets nejsou nastaveny – běžím v dev módu. Nastav `.streamlit/secrets.toml`.", icon="⚠️")
 
 # Výchozí hodnoty ze seo_config (zobrazují se jako nápověda – nepřepisují config v datastoru)
 SEO_CONFIG_PREVIEW = {
@@ -216,10 +229,11 @@ if "last_result" not in st.session_state:
 
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <div class="app-header">
     <h1>✍️ Nový SEO článek</h1>
     <p>Zadej klíčová slova a spusť tvorbu článku. Zbytek zařídí AI agent automaticky.</p>
+    <p style="margin-top:8px;font-size:11px;opacity:0.5;font-family:monospace">client: {CLIENT_ID}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -329,6 +343,7 @@ if submit:
     else:
         # Build payload
         payload = {
+            "client_id": CLIENT_ID,
             "keywords": st.session_state.keywords,
         }
 
