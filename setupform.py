@@ -253,30 +253,78 @@ with tab_config:
             "Agent_6 (social planner) použije své výchozí hodnoty."
         )
 
+        st.markdown('<hr class="divider">', unsafe_allow_html=True)
+        st.markdown("**Channels config**")
+        st.markdown(
+            '<div class="field-hint">'
+            'Definuje, na které sociální sítě agent připraví příspěvky a v jakém formátu. '
+            'Každý kanál je objekt s polem <code>channel</code> (unikátní ID kanálu), '
+            '<code>language</code> (jazyk příspěvku), <code>format</code> (styl — '
+            'např. "thought leadership post" nebo "short post, max 280 chars") '
+            'a volitelně <code>hashtags</code>. Agent vygeneruje max. 3 příspěvky.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         channels_json = st.text_area(
             "Channels config (JSON)",
-            height=130,
+            height=150,
+            label_visibility="collapsed",
             placeholder=json.dumps([
-                {"channel": "LinkedIn", "language": "cs", "format": "thought leadership post", "hashtags": ["#digitalnítransformace", "#ERP"]},
-                {"channel": "Twitter/X", "language": "cs", "format": "short post, max 280 chars"}
+                {
+                    "channel": "LinkedIn",
+                    "language": "cs",
+                    "format": "thought leadership post",
+                    "hashtags": ["#digitalnítransformace", "#ERP"]
+                },
+                {
+                    "channel": "Twitter/X",
+                    "language": "cs",
+                    "format": "short post, max 280 chars"
+                }
             ], ensure_ascii=False, indent=2),
         )
         json_hint(channels_json, "channels_json")
 
+        st.markdown('<hr class="divider">', unsafe_allow_html=True)
+        st.markdown("**UTM defaults**")
+        st.markdown(
+            '<div class="field-hint">'
+            'Výchozí UTM parametry přidávané ke všem odkazům v příspěvcích. '
+            '<code>utm_source</code> = zdroj návštěvnosti (např. "blog"), '
+            '<code>utm_medium</code> = typ kanálu (např. "organic"), '
+            '<code>utm_campaign</code> = základ názvu kampaně — '
+            'agent doplní slug článku. Bez mezer, pouze malá písmena a pomlčky.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         utm_defaults_json = st.text_area(
             "UTM defaults (JSON)",
-            height=110,
+            height=120,
+            label_visibility="collapsed",
             placeholder=json.dumps({
                 "utm_source": "blog",
                 "utm_medium": "organic",
-                "utm_campaign": "seo-{keyword}"
+                "utm_campaign": "seo"
             }, ensure_ascii=False, indent=2),
         )
         json_hint(utm_defaults_json, "utm_defaults_json")
 
+        st.markdown('<hr class="divider">', unsafe_allow_html=True)
+        st.markdown("**Employee advocacy**")
+        st.markdown(
+            '<div class="field-hint">'
+            'Pravidla pro interní šíření článku. '
+            '<code>who_to_involve</code> = role nebo jména, která mají článek sdílet. '
+            '<code>dm_template</code> = šablona zprávy — '
+            'použij <code>{topic}</code> jako zástupný symbol pro téma článku. '
+            '<code>timing</code> = kdy má sdílení proběhnout po publikaci.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         employee_advocacy = st.text_area(
             "Employee advocacy rules (JSON)",
-            height=110,
+            height=130,
+            label_visibility="collapsed",
             placeholder=json.dumps({
                 "who_to_involve": ["marketing tým", "CEO", "produktoví manažeři"],
                 "dm_template": "Ahoj, právě jsme publikovali článek o {topic}. Sdílej ho na svém LinkedIn!",
