@@ -247,91 +247,174 @@ with tab_config:
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    with st.expander("🔧  Pokročilá nastavení – JSON konfigurace"):
-        st.caption(
-            "Tato pole jsou volitelná. Pokud zůstanou prázdná, "
-            "Agent_6 (social planner) použije své výchozí hodnoty."
+    with st.expander("🔧  Pokročilá nastavení"):
+        st.caption("Volitelné. Pokud zůstanou prázdná, Agent_6 (social planner) použije výchozí hodnoty.")
+
+        # ── Channels ───────────────────────────────────────────────────────────
+        st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+        enable_social = st.checkbox(
+            "Generovat doporučení pro sociální sítě",
+            value=bool(st.session_state.get("channels")),
+            key="enable_social",
+            help="Pokud vypnuto, Agent_6 přeskočí social planner a rovnou uloží článek do Drive.",
         )
 
-        st.markdown('<hr class="divider">', unsafe_allow_html=True)
-        st.markdown("**Channels config**")
-        st.markdown(
-            '<div class="field-hint">'
-            'Definuje, na které sociální sítě agent připraví příspěvky a v jakém formátu. '
-            'Každý kanál je objekt s polem <code>channel</code> (unikátní ID kanálu), '
-            '<code>language</code> (jazyk příspěvku), <code>format</code> (styl — '
-            'např. "thought leadership post" nebo "short post, max 280 chars") '
-            'a volitelně <code>hashtags</code>. Agent vygeneruje max. 3 příspěvky.'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-        channels_json = st.text_area(
-            "Channels config (JSON)",
-            height=150,
-            label_visibility="collapsed",
-            placeholder=json.dumps([
-                {
-                    "channel": "LinkedIn",
-                    "language": "cs",
-                    "format": "thought leadership post",
-                    "hashtags": ["#digitalnítransformace", "#ERP"]
-                },
-                {
-                    "channel": "Twitter/X",
-                    "language": "cs",
-                    "format": "short post, max 280 chars"
-                }
-            ], ensure_ascii=False, indent=2),
-        )
-        json_hint(channels_json, "channels_json")
+        if "channels" not in st.session_state:
+            st.session_state.channels = []
 
+        CHANNEL_OPTIONS = ["LinkedIn", "Twitter/X", "Facebook", "Instagram", "YouTube", "TikTok", "Newsletter"]
+        FORMAT_OPTIONS  = [
+            "thought leadership post",
+            "short post, max 280 chars",
+            "carousel post",
+            "video script teaser",
+            "newsletter blurb",
+            "story / reel caption",
+        ]
+        LANG_OPTIONS = ["cs", "en", "sk", "de", "pl"]
+
+        if enable_social:
+            st.markdown(
+                '<div class="field-hint">Kanály, pro které agent připraví příspěvky. Max. 3 kanály.</div>',
+                unsafe_allow_html=True,
+            )
+
+            to_remove = None
+            for i, ch in enumerate(st.session_state.channels):
+                with st.container():
+                    st.markdown(f'<div style="background:var(--background-color,#F9F9F9);border:1px solid #E4E4E7;border-radius:8px;padding:12px 14px;margin-bottom:8px;">', unsafe_allow_html=True)
+                    c1, c2, c3 = st.columns([2, 2, 1])
+                    with c1:
+                        ch["channel"] = st.selectbox(
+                            "Kanál",
+                            options=CHANNEL_OPTIONS,
+                            index=CHANNEL_OPTIONS.index(ch["channel"]) if ch["channel"] in CHANNEL_OPTIONS else 0,
+                            key=f"ch_name_{i}",
+                        )
+                    with c2:
+                        ch["language"] = st.selectbox(
+                            "Jazyk příspěvku",
+                            options=LANG_OPTIONS,
+                            index=LANG_OPTIONS.index(ch["language"]) if ch["language"] in LANG_OPTIONS else 0,
+                            key=f"ch_lang_{i}",
+                        )
+                    with c3:
+                        st.markdown("<div style='margin-top:24px'>", unsafe_allow_html=True)
+                        if st.button("✕ Odebrat", key=f"ch_remove_{i}"):
+                            to_remove = i
+                        st.markdown("</div>", unsafe_allow_html=True)
+
+                    ch["format"] = st.selectbox(
+                        "Formát příspěvku",
+                        options=FORMAT_OPTIONS,
+                        index=FORMAT_OPTIONS.index(ch["format"]) if ch["format"] in FORMAT_OPTIONS else 0,
+                        key=f"ch_fmt_{i}",
+                        help="Styl a délka příspěvku, který agent napíše pro tento kanál.",
+                    )
+                    hashtags_raw = st.text_input(
+                        "Hashtags (oddělené mezerou)",
+                        value=" ".join(ch.get("hashtags", [])),
+                        key=f"ch_tags_{i}",
+                        placeholder="#digitalnítransformace #ERP #cloud",
+                        help="Volitelné. Hashtags agent přidá na konec příspěvku.",
+                    )
+                    ch["hashtags"] = [t.strip() for t in hashtags_raw.split() if t.strip()]
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+            if to_remove is not None:
+                st.session_state.channels.pop(to_remove)
+                st.rerun()
+
+            if len(st.session_state.channels) < 3:
+                if st.button("＋ Přidat kanál", key="add_channel"):
+                    st.session_state.channels.append({
+                        "channel": "LinkedIn",
+                        "language": "cs",
+                        "format": "thought leadership post",
+                        "hashtags": [],
+                    })
+                    st.rerun()
+            else:
+                st.caption("Dosažen maximální počet kanálů (3).")
+
+            channels_json = json.dumps(st.session_state.channels, ensure_ascii=False)
+            if st.session_state.channels:
+                st.markdown(
+                    f'<div class="json-valid">✓ {len(st.session_state.channels)} kanál(y) nastaven(y)</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            # Social vypnut – vyčistit kanály a poslat prázdné pole
+            st.session_state.channels = []
+            channels_json = "[]"
+            st.caption("Social planner bude přeskočen. Agent uloží článek do Drive a pošle email.")
+
+        # ── UTM defaults ───────────────────────────────────────────────────────
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
-        st.markdown("**UTM defaults**")
+        st.markdown("**UTM parametry**")
         st.markdown(
             '<div class="field-hint">'
             'Výchozí UTM parametry přidávané ke všem odkazům v příspěvcích. '
-            '<code>utm_source</code> = zdroj návštěvnosti (např. "blog"), '
-            '<code>utm_medium</code> = typ kanálu (např. "organic"), '
-            '<code>utm_campaign</code> = základ názvu kampaně — '
-            'agent doplní slug článku. Bez mezer, pouze malá písmena a pomlčky.'
+            'Agent doplní <code>utm_campaign</code> o slug článku automaticky. '
+            'Bez mezer, pouze malá písmena a pomlčky.'
             '</div>',
             unsafe_allow_html=True,
         )
-        utm_defaults_json = st.text_area(
-            "UTM defaults (JSON)",
-            height=120,
-            label_visibility="collapsed",
-            placeholder=json.dumps({
-                "utm_source": "blog",
-                "utm_medium": "organic",
-                "utm_campaign": "seo"
-            }, ensure_ascii=False, indent=2),
-        )
-        json_hint(utm_defaults_json, "utm_defaults_json")
+        utm_col1, utm_col2, utm_col3 = st.columns(3)
+        with utm_col1:
+            utm_source = st.text_input("utm_source", value="blog", placeholder="blog", key="utm_source")
+        with utm_col2:
+            utm_medium = st.text_input("utm_medium", value="organic", placeholder="organic", key="utm_medium")
+        with utm_col3:
+            utm_campaign = st.text_input(
+                "utm_campaign (základ)",
+                value="seo",
+                placeholder="seo",
+                key="utm_campaign",
+                help="Agent doplní slug článku, např. 'seo' → 'seo-erp-pro-vyrobu'",
+            )
+        utm_defaults_json = json.dumps({
+            "utm_source":   utm_source.strip() or "blog",
+            "utm_medium":   utm_medium.strip() or "organic",
+            "utm_campaign": utm_campaign.strip() or "seo",
+        }, ensure_ascii=False)
 
+        # ── Employee advocacy ──────────────────────────────────────────────────
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         st.markdown("**Employee advocacy**")
         st.markdown(
             '<div class="field-hint">'
-            'Pravidla pro interní šíření článku. '
-            '<code>who_to_involve</code> = role nebo jména, která mají článek sdílet. '
-            '<code>dm_template</code> = šablona zprávy — '
-            'použij <code>{topic}</code> jako zástupný symbol pro téma článku. '
-            '<code>timing</code> = kdy má sdílení proběhnout po publikaci.'
+            'Pravidla pro interní šíření článku mezi zaměstnanci.'
             '</div>',
             unsafe_allow_html=True,
         )
-        employee_advocacy = st.text_area(
-            "Employee advocacy rules (JSON)",
-            height=130,
-            label_visibility="collapsed",
-            placeholder=json.dumps({
-                "who_to_involve": ["marketing tým", "CEO", "produktoví manažeři"],
-                "dm_template": "Ahoj, právě jsme publikovali článek o {topic}. Sdílej ho na svém LinkedIn!",
-                "timing": "do 2 hodin po publikaci"
-            }, ensure_ascii=False, indent=2),
+
+        adv_who_raw = st.text_input(
+            "Kdo má sdílet (role nebo jména, oddělená čárkou)",
+            placeholder="marketing tým, CEO, produktoví manažeři",
+            key="adv_who",
+            help="Agent doporučí těmto lidem, aby článek sdíleli na svých profilech.",
         )
-        json_hint(employee_advocacy, "employee_advocacy")
+        adv_template = st.text_area(
+            "Šablona DM zprávy",
+            height=80,
+            placeholder="Ahoj, právě jsme publikovali článek o {topic}. Sdílej ho na svém LinkedIn!",
+            key="adv_template",
+            help="Použij {topic} jako zástupný symbol — agent ho nahradí tématem článku.",
+        )
+        adv_timing = st.text_input(
+            "Kdy sdílet",
+            placeholder="do 2 hodin po publikaci",
+            key="adv_timing",
+            help="Agent toto doporučení uvede v plánu.",
+        )
+        adv_who_list = [r.strip() for r in adv_who_raw.split(",") if r.strip()]
+        employee_advocacy = json.dumps({
+            "who_to_involve": adv_who_list,
+            "dm_template":    adv_template.strip() or "Ahoj, podívej se na náš nový článek o {topic}!",
+            "timing":         adv_timing.strip() or "do 24 hodin po publikaci",
+        }, ensure_ascii=False)
 
     # ── Validation & Submit ──
     st.markdown('<br>', unsafe_allow_html=True)
@@ -346,14 +429,9 @@ with tab_config:
         "Company context": company_context,
         "Google Drive Folder ID": drive_folder_id,
     }
-    json_fields = {
-        "channels_json": channels_json,
-        "utm_defaults_json": utm_defaults_json,
-        "employee_advocacy": employee_advocacy,
-    }
 
     missing = [k for k, v in required_fields.items() if not v.strip()]
-    invalid_json = [k for k, v in json_fields.items() if not is_valid_json(v)]
+    invalid_json = []  # channels, utm, advocacy jsou sestaveny programaticky – vždy validní JSON
 
     if missing:
         st.caption(f"✱ Povinná pole: {', '.join(missing)}")
