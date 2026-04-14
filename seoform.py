@@ -220,8 +220,8 @@ SEO_CONFIG_PREVIEW = {
 
 
 # ── Session state init ─────────────────────────────────────────────────────────
-if "keywords" not in st.session_state:
-    st.session_state.keywords = []
+if "secondary_keywords" not in st.session_state:
+    st.session_state.secondary_keywords = []
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
 if "last_result" not in st.session_state:
@@ -248,41 +248,67 @@ with st.expander("ℹ️  Výchozí nastavení ze seo_config"):
     st.caption("Tato nastavení jsou platná pro všechny joby. Změnit je může admin přes Setup scénář.")
 
 
-# ── Keyword input ──────────────────────────────────────────────────────────────
-st.markdown('<div class="section-label">Klíčová slova</div>', unsafe_allow_html=True)
+# ── Primární klíčové slovo ─────────────────────────────────────────────────────
+st.markdown('<div class="section-label">Primární klíčové slovo ✱</div>', unsafe_allow_html=True)
+primary_keyword = st.text_input(
+    label="Primární klíčové slovo",
+    placeholder="např. ERP systém pro výrobu",
+    label_visibility="collapsed",
+    key="primary_kw",
+    help="Hlavní KW – agent ho použije v H1, URL slugu, meta title a prvním odstavci.",
+)
 
-col_input, col_btn = st.columns([5, 1])
-with col_input:
-    new_keyword = st.text_input(
-        label="Klíčové slovo",
-        placeholder="např. ERP systém pro výrobu",
+# ── Sekundární klíčová slova ───────────────────────────────────────────────────
+st.markdown('<br>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Sekundární klíčová slova (volitelné)</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">'
+    'Agent je přirozeně zapracuje do H2 nadpisů a těla článku.</div>',
+    unsafe_allow_html=True,
+)
+
+col_sec, col_sec_btn = st.columns([5, 1])
+with col_sec:
+    new_sec_kw = st.text_input(
+        label="Sekundární KW",
+        placeholder="např. cloudový ERP, implementace ERP",
         label_visibility="collapsed",
-        key="kw_input",
+        key="sec_kw_input",
     )
-with col_btn:
+with col_sec_btn:
     st.markdown("<div style='margin-top:4px'>", unsafe_allow_html=True)
-    add_clicked = st.button("Přidat", key="add_kw")
+    add_sec = st.button("Přidat", key="add_sec_kw")
     st.markdown("</div>", unsafe_allow_html=True)
 
-if add_clicked and new_keyword.strip():
-    kw = new_keyword.strip()
-    if kw not in st.session_state.keywords:
-        st.session_state.keywords.append(kw)
+if add_sec and new_sec_kw.strip():
+    kw = new_sec_kw.strip()
+    if kw not in st.session_state.secondary_keywords:
+        st.session_state.secondary_keywords.append(kw)
     st.rerun()
 
-# Zobrazení přidaných klíčových slov
-if st.session_state.keywords:
-    cols = st.columns(len(st.session_state.keywords))
+if st.session_state.secondary_keywords:
+    cols = st.columns(len(st.session_state.secondary_keywords))
     to_remove = None
-    for i, kw in enumerate(st.session_state.keywords):
+    for i, kw in enumerate(st.session_state.secondary_keywords):
         with cols[i]:
-            if st.button(f"✕  {kw}", key=f"remove_{i}"):
+            if st.button(f"✕  {kw}", key=f"remove_sec_{i}"):
                 to_remove = i
     if to_remove is not None:
-        st.session_state.keywords.pop(to_remove)
+        st.session_state.secondary_keywords.pop(to_remove)
         st.rerun()
 else:
-    st.caption("Zatím žádná klíčová slova. Přidej alespoň jedno.")
+    st.caption("Zatím žádná sekundární klíčová slova.")
+
+# ── Pracovní název článku ──────────────────────────────────────────────────────
+st.markdown('<br>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Pracovní název článku (volitelné)</div>', unsafe_allow_html=True)
+title_hint = st.text_input(
+    label="Pracovní název",
+    placeholder="např. Jak vybrat ERP systém pro výrobní firmu",
+    label_visibility="collapsed",
+    key="title_hint",
+    help="Agent použije tento název jako výchozí bod pro navržené nadpisy. Může ho upravit, ale bude ho respektovat.",
+)
 
 
 # ── Seed links ─────────────────────────────────────────────────────────────────
@@ -338,14 +364,20 @@ st.markdown('<br>', unsafe_allow_html=True)
 submit = st.button("🚀  Spustit tvorbu článku", key="submit_btn")
 
 if submit:
-    if not st.session_state.keywords:
-        st.error("Přidej alespoň jedno klíčové slovo.")
+    if not primary_keyword.strip():
+        st.error("Vyplň primární klíčové slovo.")
     else:
         # Build payload
         payload = {
-            "client_id": CLIENT_ID,
-            "keywords": st.session_state.keywords,
+            "client_id":       CLIENT_ID,
+            "primary_keyword": primary_keyword.strip(),
         }
+
+        if st.session_state.secondary_keywords:
+            payload["secondary_keywords"] = st.session_state.secondary_keywords
+
+        if title_hint.strip():
+            payload["title_hint"] = title_hint.strip()
 
         # Seed links
         seed_links = [l.strip() for l in seed_links_raw.splitlines() if l.strip()]
@@ -375,12 +407,12 @@ if submit:
             if response.status_code in (200, 201, 202):
                 st.session_state.last_result = {
                     "success": True,
-                    "keywords": st.session_state.keywords.copy(),
+                    "primary_keyword": primary_keyword.strip(),
                     "payload": payload,
                     "time": datetime.now().strftime("%H:%M:%S"),
                 }
                 # Reset formuláře
-                st.session_state.keywords = []
+                st.session_state.secondary_keywords = []
                 st.rerun()
             else:
                 st.session_state.last_result = {
@@ -402,11 +434,11 @@ if submit:
 if st.session_state.last_result:
     r = st.session_state.last_result
     if r["success"]:
-        kw_list = "  ·  ".join(r["keywords"])
+        kw_list = r["primary_keyword"]
         st.markdown(f"""
         <div class="result-card result-success">
             <strong>✓ Článek je ve frontě</strong><br>
-            Klíčová slova: <strong>{kw_list}</strong><br>
+            Primární KW: <strong>{kw_list}</strong><br>
             <span style="font-size:12px;opacity:0.75">Odesláno v {r['time']}. Hotový článek přijde e-mailem.</span>
         </div>
         """, unsafe_allow_html=True)
