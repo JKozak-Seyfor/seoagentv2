@@ -246,15 +246,35 @@ with st.expander("ℹ️  Výchozí nastavení ze seo_config"):
     st.caption("Tato nastavení jsou platná pro všechny joby. Změnit je může admin přes Setup scénář.")
 
 
-# ── Primární klíčové slovo ─────────────────────────────────────────────────────
-st.markdown('<div class="section-label">Primární klíčové slovo ✱</div>', unsafe_allow_html=True)
-primary_keyword = st.text_input(
-    label="Primární klíčové slovo",
-    placeholder="např. ERP systém pro výrobu",
-    label_visibility="collapsed",
-    key="primary_kw",
-    help="Hlavní KW – agent ho použije v H1, URL slugu, meta title a prvním odstavci.",
+# ── Primární klíčová slova ─────────────────────────────────────────────────────
+st.markdown('<div class="section-label">Primární klíčová slova ✱</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">'
+    'Každé KW na nový řádek nebo oddělená čárkou. Agent je použije v H1, URL slugu a meta title.</div>',
+    unsafe_allow_html=True,
 )
+primary_kw_raw = st.text_area(
+    label="Primární klíčová slova",
+    placeholder="ERP systém pro výrobu\nERP software",
+    label_visibility="collapsed",
+    height=90,
+    key="primary_kw_raw",
+)
+
+primary_keywords_parsed = parse_keywords(primary_kw_raw)
+
+if primary_keywords_parsed:
+    pills_html = "".join([
+        f'<span style="display:inline-block;background:#1A1A2E;color:white;'
+        f'border-radius:20px;padding:3px 10px;font-size:12px;margin:2px 3px 2px 0;">{kw}</span>'
+        for kw in primary_keywords_parsed
+    ])
+    st.markdown(
+        f'<div style="margin-top:6px">{pills_html}</div>'
+        f'<div style="font-size:11px;color:var(--color-text-tertiary);margin-top:5px;">'
+        f'{len(primary_keywords_parsed)} primární KW</div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Sekundární klíčová slova ───────────────────────────────────────────────────
 st.markdown('<br>', unsafe_allow_html=True)
@@ -367,13 +387,13 @@ st.markdown('<br>', unsafe_allow_html=True)
 submit = st.button("🚀  Spustit tvorbu článku", key="submit_btn")
 
 if submit:
-    if not primary_keyword.strip():
-        st.error("Vyplň primární klíčové slovo.")
+    if not primary_keywords_parsed:
+        st.error("Zadej alespoň jedno primární klíčové slovo.")
     else:
         # Build payload
         payload = {
-            "client_id":       CLIENT_ID,
-            "primary_keyword": primary_keyword.strip(),
+            "client_id":        CLIENT_ID,
+            "primary_keywords": primary_keywords_parsed,
         }
 
         if secondary_keywords_parsed:
@@ -410,7 +430,7 @@ if submit:
             if response.status_code in (200, 201, 202):
                 st.session_state.last_result = {
                     "success": True,
-                    "primary_keyword": primary_keyword.strip(),
+                    "primary_keywords": primary_keywords_parsed,
                     "payload": payload,
                     "time": datetime.now().strftime("%H:%M:%S"),
                 }
@@ -436,7 +456,7 @@ if submit:
 if st.session_state.last_result:
     r = st.session_state.last_result
     if r["success"]:
-        kw_list = r["primary_keyword"]
+        kw_list = "  ·  ".join(r["primary_keywords"])
         st.markdown(f"""
         <div class="result-card result-success">
             <strong>✓ Článek je ve frontě</strong><br>
