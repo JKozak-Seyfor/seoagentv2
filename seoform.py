@@ -192,6 +192,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ── Helpers ────────────────────────────────────────────────────────────────────
+import re
+
+def parse_keywords(raw: str) -> list:
+    parts = re.split(r'[,\n]', raw)
+    seen = set()
+    result = []
+    for p in parts:
+        kw = p.strip()
+        if kw and kw.lower() not in seen:
+            seen.add(kw.lower())
+            result.append(kw)
+    return result
+
+
 # ── Configuration ──────────────────────────────────────────────────────────────
 # Hodnoty se čtou ze Streamlit secrets (.streamlit/secrets.toml)
 # Každý zákazník má vlastní deployment s vlastními secrets – kód se nemění.
@@ -294,18 +309,6 @@ sec_kw_raw = st.text_area(
 )
 
 # Parsování – rozdělení podle čárek nebo nových řádků, deduplikace, trim
-def parse_keywords(raw: str) -> list:
-    import re
-    parts = re.split(r'[,\n]', raw)
-    seen = set()
-    result = []
-    for p in parts:
-        kw = p.strip()
-        if kw and kw.lower() not in seen:
-            seen.add(kw.lower())
-            result.append(kw)
-    return result
-
 secondary_keywords_parsed = parse_keywords(sec_kw_raw)
 
 if secondary_keywords_parsed:
