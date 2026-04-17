@@ -220,8 +220,6 @@ SEO_CONFIG_PREVIEW = {
 
 
 # ── Session state init ─────────────────────────────────────────────────────────
-if "secondary_keywords" not in st.session_state:
-    st.session_state.secondary_keywords = []
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
 if "last_result" not in st.session_state:
@@ -263,41 +261,46 @@ st.markdown('<br>', unsafe_allow_html=True)
 st.markdown('<div class="section-label">Sekundární klíčová slova (volitelné)</div>', unsafe_allow_html=True)
 st.markdown(
     '<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">'
-    'Agent je přirozeně zapracuje do H2 nadpisů a těla článku.</div>',
+    'Každé KW na nový řádek nebo oddělená čárkou. Agent je přirozeně zapracuje do H2 nadpisů a těla článku.</div>',
     unsafe_allow_html=True,
 )
 
-col_sec, col_sec_btn = st.columns([5, 1])
-with col_sec:
-    new_sec_kw = st.text_input(
-        label="Sekundární KW",
-        placeholder="např. cloudový ERP, implementace ERP",
-        label_visibility="collapsed",
-        key="sec_kw_input",
+sec_kw_raw = st.text_area(
+    label="Sekundární klíčová slova",
+    placeholder="cloudový ERP\nimplementace ERP\nERP pro výrobu",
+    label_visibility="collapsed",
+    height=100,
+    key="sec_kw_raw",
+)
+
+# Parsování – rozdělení podle čárek nebo nových řádků, deduplikace, trim
+def parse_keywords(raw: str) -> list:
+    import re
+    parts = re.split(r'[,\n]', raw)
+    seen = set()
+    result = []
+    for p in parts:
+        kw = p.strip()
+        if kw and kw.lower() not in seen:
+            seen.add(kw.lower())
+            result.append(kw)
+    return result
+
+secondary_keywords_parsed = parse_keywords(sec_kw_raw)
+
+if secondary_keywords_parsed:
+    pills_html = "".join([
+        f'<span style="display:inline-block;background:var(--color-background-secondary);'
+        f'border:1px solid var(--color-border-tertiary);border-radius:20px;'
+        f'padding:3px 10px;font-size:12px;margin:2px 3px 2px 0;">{kw}</span>'
+        for kw in secondary_keywords_parsed
+    ])
+    st.markdown(
+        f'<div style="margin-top:6px">{pills_html}</div>'
+        f'<div style="font-size:11px;color:var(--color-text-tertiary);margin-top:5px;">'
+        f'{len(secondary_keywords_parsed)} klíčových slov</div>',
+        unsafe_allow_html=True,
     )
-with col_sec_btn:
-    st.markdown("<div style='margin-top:4px'>", unsafe_allow_html=True)
-    add_sec = st.button("Přidat", key="add_sec_kw")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-if add_sec and new_sec_kw.strip():
-    kw = new_sec_kw.strip()
-    if kw not in st.session_state.secondary_keywords:
-        st.session_state.secondary_keywords.append(kw)
-    st.rerun()
-
-if st.session_state.secondary_keywords:
-    cols = st.columns(len(st.session_state.secondary_keywords))
-    to_remove = None
-    for i, kw in enumerate(st.session_state.secondary_keywords):
-        with cols[i]:
-            if st.button(f"✕  {kw}", key=f"remove_sec_{i}"):
-                to_remove = i
-    if to_remove is not None:
-        st.session_state.secondary_keywords.pop(to_remove)
-        st.rerun()
-else:
-    st.caption("Zatím žádná sekundární klíčová slova.")
 
 # ── Pracovní název článku ──────────────────────────────────────────────────────
 st.markdown('<br>', unsafe_allow_html=True)
@@ -373,8 +376,8 @@ if submit:
             "primary_keyword": primary_keyword.strip(),
         }
 
-        if st.session_state.secondary_keywords:
-            payload["secondary_keywords"] = st.session_state.secondary_keywords
+        if secondary_keywords_parsed:
+            payload["secondary_keywords"] = secondary_keywords_parsed
 
         if title_hint.strip():
             payload["title_hint"] = title_hint.strip()
@@ -411,8 +414,7 @@ if submit:
                     "payload": payload,
                     "time": datetime.now().strftime("%H:%M:%S"),
                 }
-                # Reset formuláře
-                st.session_state.secondary_keywords = []
+                # Reset formuláře — textarea se resetuje automaticky přes rerun
                 st.rerun()
             else:
                 st.session_state.last_result = {
