@@ -237,15 +237,6 @@ with tab_config:
     )
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
-    st.markdown("##### Výstupy")
-
-    drive_folder_id = st.text_input(
-        "Google Drive Folder ID ✱",
-        placeholder="1SXPSbAgiDpSZDPo5_N6pRkBWT3NrKmxc",
-        help="ID složky v Google Drive, kam Agent_6 ukládá hotové články a social posty.",
-    )
-
-    st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
     with st.expander("🔧  Pokročilá nastavení"):
         st.caption("Volitelné. Pokud zůstanou prázdná, Agent_6 (social planner) použije výchozí hodnoty.")
@@ -427,7 +418,6 @@ with tab_config:
         "Publikum": default_audience,
         "Brand voice rules": brand_voice,
         "Company context": company_context,
-        "Google Drive Folder ID": drive_folder_id,
     }
 
     missing = [k for k, v in required_fields.items() if not v.strip()]
@@ -459,7 +449,6 @@ with tab_config:
             "requires_manual_review": requires_review,
             "brand_voice_rules": brand_voice.strip(),
             "company_context": company_context.strip(),
-            "drive_folder_id": drive_folder_id.strip(),
             "channels_json": channels_json.strip() or "[]",
             "utm_defaults_json": utm_defaults_json.strip() or "{}",
             "employee_advocacy": employee_advocacy.strip() or "{}",
