@@ -227,6 +227,16 @@ AVAILABLE_CLIENTS = {
     "MERP": "merp",
 }
 
+# Výchozí hodnoty ze seo_config (zobrazují se jako nápověda – nepřepisují config v datastoru)
+SEO_CONFIG_PREVIEW = {
+    "Jazyk": "cs",
+    "Tón": "profesionální",
+    "Publikum": "B2B, IT manažeři",
+    "Délka": "1 500 slov",
+    "Intent": "informational",
+}
+
+
 # ── Session state init ─────────────────────────────────────────────────────────
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
