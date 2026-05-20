@@ -208,21 +208,24 @@ def parse_keywords(raw: str) -> list:
 
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-# Hodnoty se čtou ze Streamlit secrets (.streamlit/secrets.toml)
-# Každý zákazník má vlastní deployment s vlastními secrets – kód se nemění.
+# Webhook URL se čte ze Streamlit secrets (.streamlit/secrets.toml)
+# CLIENT_ID se vybírá z dropdownu v UI
 #
 # Příklad .streamlit/secrets.toml:
 #   WEBHOOK_URL = "https://hook.eu2.make.com/TVŮJ_WEBHOOK_URL"
-#   CLIENT_ID   = "seyfor"
 #
 try:
     WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
-    CLIENT_ID   = st.secrets["CLIENT_ID"]
 except (KeyError, FileNotFoundError):
-    # Fallback pro lokální vývoj bez secrets.toml
     WEBHOOK_URL = "https://hook.eu2.make.com/TVŮJ_WEBHOOK_URL"
-    CLIENT_ID   = "dev_client"
     st.warning("⚠️  Secrets nejsou nastaveny – běžím v dev módu. Nastav `.streamlit/secrets.toml`.", icon="⚠️")
+
+# Dostupní klienti
+AVAILABLE_CLIENTS = {
+    "mBanka": "mbanka",
+    "Vema": "vema",
+    "MERP": "merp",
+}
 
 # Výchozí hodnoty ze seo_config (zobrazují se jako nápověda – nepřepisují config v datastoru)
 SEO_CONFIG_PREVIEW = {
@@ -242,13 +245,23 @@ if "last_result" not in st.session_state:
 
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-st.markdown(f"""
+st.markdown("""
 <div class="app-header">
     <h1>✍️ Nový SEO článek</h1>
     <p>Zadej klíčová slova a spusť tvorbu článku. Zbytek zařídí AI agent automaticky.</p>
-    <p style="margin-top:8px;font-size:11px;opacity:0.5;font-family:monospace">client: {CLIENT_ID}</p>
 </div>
 """, unsafe_allow_html=True)
+
+
+# ── Client selector ───────────────────────────────────────────────────────────
+st.markdown('<div class="section-label">Klient ✱</div>', unsafe_allow_html=True)
+selected_client_label = st.selectbox(
+    label="Klient",
+    options=list(AVAILABLE_CLIENTS.keys()),
+    key="client_selector",
+    label_visibility="collapsed",
+)
+CLIENT_ID = AVAILABLE_CLIENTS[selected_client_label]
 
 
 # ── Config defaults preview ────────────────────────────────────────────────────
@@ -437,7 +450,6 @@ if submit:
                     "payload": payload,
                     "time": datetime.now().strftime("%H:%M:%S"),
                 }
-                # Reset formuláře — textarea se resetuje automaticky přes rerun
                 st.rerun()
             else:
                 st.session_state.last_result = {
