@@ -225,6 +225,7 @@ AVAILABLE_CLIENTS = {
     "mBanka": "mbanka",
     "Vema": "vema",
     "MERP": "merp",
+    "Seyfor": "seyfor"
 }
 
 # Výchozí hodnoty ze seo_config (zobrazují se jako nápověda – nepřepisují config v datastoru)
